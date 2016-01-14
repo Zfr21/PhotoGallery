@@ -73,7 +73,6 @@ public class FlickrFetchr {
             Log.i(TAG, "Received JSON: " + jsonString);
             JSONObject jsonBody = new JSONObject(jsonString);
             parseItemsGSON(items,jsonString);
-//            parseItems(items, jsonBody);
         } catch (IOException ioe) {
             Log.e(TAG, "Failed to fetch items", ioe);
         } catch (JSONException e) {

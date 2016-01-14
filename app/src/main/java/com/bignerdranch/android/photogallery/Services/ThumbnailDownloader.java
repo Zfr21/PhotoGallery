@@ -91,5 +91,6 @@ public class ThumbnailDownloader<T> extends HandlerThread{
 
     public void clearQueue(){
         mRequestHandler.removeMessages(MESSAGE_DOWNLOAD);
+        mRequestMap.clear();
     }
 }

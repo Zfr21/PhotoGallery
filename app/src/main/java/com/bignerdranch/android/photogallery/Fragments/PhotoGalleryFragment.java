@@ -7,8 +7,12 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -16,6 +20,7 @@ import android.widget.ImageView;
 import com.bignerdranch.android.photogallery.Model.GalleryItem;
 import com.bignerdranch.android.photogallery.Networking.FlickrFetchr;
 import com.bignerdranch.android.photogallery.R;
+import com.bignerdranch.android.photogallery.Utils.QueryPreferences;
 import com.bumptech.glide.Glide;
 
 import java.util.ArrayList;
@@ -29,8 +34,7 @@ public class PhotoGalleryFragment extends Fragment{
     private static final String TAG= "PhotoGalleryFragment";
     private RecyclerView mPhotoRecyclerView;
     private List<GalleryItem> mItems = new ArrayList<>();
-    //private ThumbnailDownloader<PhotoHolder> mThumbnailDownloader;
-
+    private MenuItem mSearchItem;
 
     public static PhotoGalleryFragment newInstance() {
         return new PhotoGalleryFragment();
@@ -40,7 +44,8 @@ public class PhotoGalleryFragment extends Fragment{
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
-        new FetchItemTasks().execute();
+        setHasOptionsMenu(true);
+        updateItems();
 
 //        Handler responseHandler = new Handler();
 //        mThumbnailDownloader = new ThumbnailDownloader<>(responseHandler);
@@ -89,13 +94,27 @@ public class PhotoGalleryFragment extends Fragment{
         }
     }
 
+    private void updateItems() {
+        String query = QueryPreferences.getStoredQuery(getActivity());
+        new FetchItemTasks(query).execute();
+    }
+
     private class FetchItemTasks extends AsyncTask<Void, Void, List<GalleryItem>> {
 
+        private String mQuery;
+
+        public FetchItemTasks(String query) {
+            mQuery = query;
+        }
 
         @Override
         protected List<GalleryItem> doInBackground(Void... params) {
 
-            return new FlickrFetchr().fetchtems();
+            if(mQuery == null) {
+                return new FlickrFetchr().fetchRecentPhotos();
+            } else {
+                return new FlickrFetchr().searchPhotos(mQuery);
+            }
 
         }
 
@@ -156,4 +175,58 @@ public class PhotoGalleryFragment extends Fragment{
             return mGalleryItems.size();
         }
     }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.fragment_photo_gallery, menu);
+
+        mSearchItem = menu.findItem(R.id.menu_item_search);
+        final SearchView searchView = (SearchView) mSearchItem.getActionView();
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                Log.d(TAG, "QueryTextSubmit: " + query);
+                QueryPreferences.setStoredQuery(getActivity(), query);
+
+                searchView.clearFocus();
+                mSearchItem.collapseActionView();
+
+                updateItems();
+
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                Log.d(TAG, "QueryTextChange: " + newText);
+                return false;
+            }
+        });
+
+        searchView.setOnSearchClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String query = QueryPreferences.getStoredQuery(getActivity());
+                searchView.setQuery(query, false);
+            }
+        });
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch (item.getItemId()) {
+
+            case R.id.menu_item_clear:
+                QueryPreferences.setStoredQuery(getActivity(), null);
+                updateItems();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+
 }

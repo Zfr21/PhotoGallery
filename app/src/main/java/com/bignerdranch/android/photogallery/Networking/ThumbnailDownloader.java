@@ -1,4 +1,4 @@
-package com.bignerdranch.android.photogallery.Services;
+package com.bignerdranch.android.photogallery.Networking;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
